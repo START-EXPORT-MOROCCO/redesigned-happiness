@@ -22,6 +22,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"fmt"
 
 	"cloud.google.com/go/storage"
 )
@@ -59,11 +61,15 @@ func CopyFromBucket(ctx context.Context, bucketHdl *storage.BucketHandle, name s
 		if err != nil {
 			return "", err
 		}
-		path := filepath.Clean(filepath.Join(tmpDir, hdr.Name))
-		if err := os.MkdirAll(filepath.Dir(path), 0760); err != nil {
+		path := filepath.Join(tmpDir, hdr.Name)
+		cleanPath := filepath.Clean(path)
+		if !strings.HasPrefix(cleanPath, tmpDir) {
+			return "", fmt.Errorf("invalid file path: %s", hdr.Name)
+		}
+		if err := os.MkdirAll(filepath.Dir(cleanPath), 0760); err != nil {
 			return "", err
 		}
-		if err := os.WriteFile(path, buf, 0660); err != nil {
+		if err := os.WriteFile(cleanPath, buf, 0660); err != nil {
 			return "", err
 		}
 	}
